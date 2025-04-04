@@ -2,3 +2,5 @@
 *.ipynb
 data/*
 *.pyc
+subpkgs/*
+genbio_hw2.egg-info/*

@@ -1,4 +1,4 @@
-from downloader import Downloader
+from core.downloader import Downloader
 import argparse
 
 
