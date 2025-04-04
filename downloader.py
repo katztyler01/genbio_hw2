@@ -75,4 +75,5 @@ class Downloader:
         
         print(f"Saving annData to {output_path}")
         adata.write(output_path)
+        census.close()
         return 
