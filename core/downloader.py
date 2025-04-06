@@ -17,7 +17,6 @@ class Downloader:
         cell_types: List[str] = [
             "microglial cell",
             "oligodendrocyte",
-            "oligodendrocyte precursor cell",
         ],
     ) -> None:
         self.output_dir = output_dir
