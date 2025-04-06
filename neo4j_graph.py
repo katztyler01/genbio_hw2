@@ -5,13 +5,15 @@ import dotenv
 import os
 import argparse
 
+# NOTE: code adapted from https://neo4j.com/docs/python-manual/current/
+
 
 def load_data(parquet_file):
     df = pd.read_parquet(parquet_file)
     gene_nodes = []
     disease_nodes = []
     cell_type_edges = []
-    
+
     for _, row in df.iterrows():
         row_dict = {}
         for k, v in row.items():
@@ -19,25 +21,25 @@ def load_data(parquet_file):
                 row_dict[k] = v
             else:
                 row_dict[k] = None if pd.isna(v) else v
-                
+
         gene = {
             "symbol": row_dict["feature_name"],
             "entrez": row_dict["entrez"],
-            "ensembl": row_dict["ensembl"]
+            "ensembl": row_dict["ensembl"],
         }
         gene_nodes.append(gene)
         disease = {
             "name": row_dict["disease"],
             "mondo": row_dict["mondo"],
             "doid": row_dict["doid"],
-            "mesh": row_dict["mesh"]
+            "mesh": row_dict["mesh"],
         }
         disease_nodes.append(disease)
         cell_type_edge = {
             "gene_symbol": row_dict["feature_name"],
             "disease_name": row_dict["disease"],
             "cell_type": row_dict["cell_type"],
-            "lfc_mean": row_dict["lfc_mean"]
+            "lfc_mean": row_dict["lfc_mean"],
         }
         cell_type_edges.append(cell_type_edge)
     return gene_nodes, disease_nodes, cell_type_edges
@@ -46,7 +48,7 @@ def load_data(parquet_file):
 def main(args):
     load_status = dotenv.load_dotenv(args.env_file)
     if load_status is False:
-        raise RuntimeError('Environment variables not loaded.')
+        raise RuntimeError("Environment variables not loaded.")
 
     URI = os.getenv("NEO4J_URI")
     AUTH = (os.getenv("NEO4J_USERNAME"), os.getenv("NEO4J_PASSWORD"))
@@ -54,10 +56,10 @@ def main(args):
     with GraphDatabase.driver(URI, auth=AUTH) as driver:
         driver.verify_connectivity()
         print("Connection established.")
-        
+
         gene_nodes, disease_nodes, cell_type_edges = load_data(args.de_parquet)
         print("Data loaded from parquet file.")
-        
+
         for gene in gene_nodes:
             driver.execute_query(
                 """
@@ -82,9 +84,11 @@ def main(args):
                 database_="neo4j",
             )
         for edge in cell_type_edges:
-            cell_type = edge['cell_type']
-            clean_cell_type = ''.join(c if c.isalnum() else '_' for c in cell_type).strip('_')
-            
+            cell_type = edge["cell_type"]
+            clean_cell_type = "".join(
+                c if c.isalnum() else "_" for c in cell_type
+            ).strip("_")
+
             driver.execute_query(
                 """
                 MATCH (g:Gene {symbol: $rel.gene_symbol})
@@ -98,13 +102,18 @@ def main(args):
                 database_="neo4j",
             )
         print("Data loaded into Neo4j database.")
-    
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Load data into Neo4j database.")
-    parser.add_argument("--de_parquet", type=str, help="Path to the input parquet file.")
-    parser.add_argument("--env_file", type=str, help="Path to the environment variables file.")
+    parser.add_argument(
+        "--de_parquet", type=str, help="Path to the input parquet file."
+    )
+    parser.add_argument(
+        "--env_file", type=str, help="Path to the environment variables file."
+    )
     args = parser.parse_args()
-    
+
     main(args)
 
 # NOTE: To visualize top 5 genes for each disease in Neo4j browser, run this query:
@@ -129,5 +138,3 @@ RETURN gene_data.gene as gene,
        edge_data.cell_type as cell_type,
        edge_data.abs_lfc as abs_lfc
 """
-    
-    

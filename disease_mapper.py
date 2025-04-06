@@ -15,8 +15,9 @@ def map_diseases(disease_terms, api_key=None):
     mondo_dict = {}
     doid_dict = {}
     mesh_dict = {}
+    efo_dict = {}
 
-    ontologies = ["MONDO", "DOID", "MESH"]
+    ontologies = ["MONDO", "DOID", "MESH", "EFO"]
     ontologies_str = ",".join(ontologies)
 
     for term in disease_terms:
@@ -40,20 +41,22 @@ def map_diseases(disease_terms, api_key=None):
                 "MONDO": {"score": 0, "id": None},
                 "DOID": {"score": 0, "id": None},
                 "MESH": {"score": 0, "id": None},
+                "EFO": {"score": 0, "id": None},
             }
 
             if data["collection"]:
                 for item in data["collection"]:
                     ontology = item["links"]["ontology"].split("/")[-1]
-
+                    # print(f"Ontology: {ontology}")
                     if ontology not in ontologies:
                         continue
 
                     full_id = item["@id"]
+                    # print(f"Full ID: {full_id}")
                     local_id = full_id.split("/")[-1]
-
+                    # print(f"Local ID: {local_id}")
                     pref_label = item.get("prefLabel", "")
-
+                    # print(f"Pref Label: {pref_label}")
                     if term.lower() == pref_label.lower():
                         match_score = 1.0
 
@@ -65,9 +68,10 @@ def map_diseases(disease_terms, api_key=None):
                     else:
                         match_score = 0.3
 
-                    if match_score > best_matches[ontology]["score"]:
-                        best_matches[ontology]["score"] = match_score
-                        best_matches[ontology]["id"] = local_id
+                    if ontology.lower() in full_id.lower():
+                        if match_score > best_matches[ontology]["score"]:
+                            best_matches[ontology]["score"] = match_score
+                            best_matches[ontology]["id"] = local_id
 
             if best_matches["MONDO"]["id"]:
                 mondo_dict[term] = best_matches["MONDO"]["id"]
@@ -75,10 +79,12 @@ def map_diseases(disease_terms, api_key=None):
                 doid_dict[term] = best_matches["DOID"]["id"]
             if best_matches["MESH"]["id"]:
                 mesh_dict[term] = best_matches["MESH"]["id"]
+            if best_matches["EFO"]["id"]:
+                efo_dict[term] = best_matches["EFO"]["id"]
 
         else:
             print(f"Error for term '{term}': {response.status_code}")
 
         time.sleep(0.5)
 
-    return mondo_dict, doid_dict, mesh_dict
+    return mondo_dict, doid_dict, mesh_dict, efo_dict
